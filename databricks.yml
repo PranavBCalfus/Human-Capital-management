@@ -1,0 +1,12 @@
+bundle:
+  name: hcm_pov
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://<your-workspace>.cloud.databricks.com   # replace with your workspace URL

@@ -1,0 +1,78 @@
+# Lakeflow Job: Bronze -> 5 parallel Silver -> DQ gate -> Gold (module 09).
+# Serverless; run manually on Free Edition (no schedule/trigger) to protect the usage quota.
+resources:
+  jobs:
+    hcm_medallion:
+      name: hcm_medallion_${bundle.target}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: workspace
+        - name: run_id
+          default: "{{job.run_id}}"
+      tasks:
+        - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/01_bronze_ingest.ipynb
+          timeout_seconds: 1800
+          max_retries: 1
+
+        - task_key: silver_worker
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/02_silver_worker.ipynb
+          timeout_seconds: 1800
+
+        - task_key: silver_assignment
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/03_silver_assignment.ipynb
+          timeout_seconds: 1800
+
+        - task_key: silver_periods
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/04_silver_periods_of_service.ipynb
+          timeout_seconds: 1800
+
+        - task_key: silver_job_grade
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/05_silver_job_grade.ipynb
+          timeout_seconds: 1800
+
+        - task_key: silver_learning
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../src/06_silver_learning.ipynb
+          timeout_seconds: 1800
+
+        - task_key: dq_reconcile
+          depends_on:
+            - task_key: silver_worker
+            - task_key: silver_assignment
+            - task_key: silver_periods
+            - task_key: silver_job_grade
+            - task_key: silver_learning
+          notebook_task:
+            notebook_path: ../src/09_dq_reconcile.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_dimensions
+          depends_on:
+            - task_key: dq_reconcile
+          notebook_task:
+            notebook_path: ../src/07_gold_dimensions.ipynb
+          timeout_seconds: 1800
+
+        - task_key: gold_facts
+          depends_on:
+            - task_key: gold_dimensions
+          notebook_task:
+            notebook_path: ../src/08_gold_facts.ipynb
+          timeout_seconds: 1800

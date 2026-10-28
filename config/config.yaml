@@ -1,0 +1,59 @@
+catalog: workspace
+
+paths:                       # {catalog} is filled from the job parameter by resolve_paths()
+  landing: /Volumes/{catalog}/landing/hcm_raw
+  upload: /Volumes/{catalog}/landing/hcm_raw/_upload
+  checkpoints: /Volumes/{catalog}/landing/checkpoints
+  dq_answer_key: /Volumes/{catalog}/landing/reference/DQ_ANSWER_KEY.json
+
+source_system: ORACLE_HCM
+schema_version: v1
+
+bronze_tables:
+  - per_all_people_f
+  - per_all_assignments_m
+  - per_periods_of_service
+  - learning_activity
+  - hr_all_organization_units
+  - per_jobs
+  - per_grades_f
+  - per_locations_f
+  - per_legal_employers
+
+dates:
+  formats: ["yyyy-MM-dd", "MM/dd/yyyy", "dd-MMM-yyyy"]
+  oracle_end_of_time: "4712-12-31"
+
+snapshot:
+  start_date: "2009-01-31"
+  end_date: "2026-06-30"        # extract as-of date
+  dimdate_start: "2009-01-01"
+  dimdate_end: "2026-12-31"
+
+null_handling:
+  PER_ALL_PEOPLE_F:
+    DATE_OF_BIRTH: {strategy: flag_only}                 # never invent a birth date
+  PER_ALL_ASSIGNMENTS_M:
+    GRADE_ID:    {strategy: lookup, lookup: default_grade_by_job}
+    LOCATION_ID: {strategy: constant, value: -1, label: UNKNOWN_LOCATION}
+
+domains:
+  ASSIGNMENT_STATUS_TYPE:
+    allowed: [ACTIVE, SUSPENDED, TERMINATED]
+    value_map: {ACTIV: ACTIVE}                          # obvious typo -> fix
+    on_invalid: flag                                     # PENDING_REVIEW stays, flagged
+
+orphans:
+  LEGAL_ENTITY_ID: {replace_with: -1}
+
+leaving_reason_map:
+  "Resignation - Career Growth": Voluntary
+  "Performance": Involuntary
+  _default: Unknown
+
+learning:
+  hours_type: "decimal(5,2)"
+  min_hours: 0
+
+pii_columns:
+  PER_ALL_PEOPLE_F: [FULL_NAME, DATE_OF_BIRTH, NATIONAL_IDENTIFIER]

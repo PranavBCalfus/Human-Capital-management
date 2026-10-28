@@ -1,0 +1,12 @@
+# Source data and the DQ answer key never go in Git: upload them to the landing volume instead
+*.csv
+DQ_ANSWER_KEY.json
+
+# Databricks bundle state
+.databricks/
+
+# Python / OS
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
